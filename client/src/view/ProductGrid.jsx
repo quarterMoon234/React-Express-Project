@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Grid from "@mui/material/Grid";
 import Item from "./Product";
+import Product from "./Product";
 
 export default function ProductGrid() {
   const [products, setProducts] = useState([]);
@@ -16,7 +17,7 @@ export default function ProductGrid() {
     <Grid container spacing={3} justifyContent="center" sx={{ p: 3 }}>
       {products.map((p) => (
         <Grid item key={p._id} xs={12} sm={6} md={4} lg={3}>
-          <Item product={p} />
+          <Product product={p} />
         </Grid>
       ))}
     </Grid>

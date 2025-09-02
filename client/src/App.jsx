@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import ProductGrid from "./view/ProductGrid";
 import AdminPage from "./view/AdminPage";
+import Button from "@mui/material/Button";
 
 export default function App() {
   return (
@@ -9,10 +10,10 @@ export default function App() {
         {/* 상단 네비게이션 버튼 */}
         <nav style={{ marginBottom: "20px" }}>
           <Link to="/" style={{ marginRight: "10px" }}>
-            <button>상품목록</button>
+            <Button variant="contained" color="primary">상품 목록</Button>
           </Link>
           <Link to="/admin">
-            <button>관리자 페이지</button>
+            <Button variant="contained" color="primary">관리자 페이지</Button>
           </Link>
         </nav>
 

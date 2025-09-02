@@ -36,3 +36,4 @@ export default function Product({ product }) {
     </Card>
   );
 }
+
