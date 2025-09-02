@@ -1,20 +1,27 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import ProductGrid from "./view/ProductGrid";
+import AdminPage from "./view/AdminPage";
 
-function App() {
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    axios.get('/api/hello')
-      .then(res => setMessage(res.data.message))
-      .catch(err => console.error(err));
-  }, []);
-
+export default function App() {
   return (
-    <div>
-      <h1>{message ? message : "로딩 중..."}</h1>
-    </div>
+    <Router>
+      <div style={{ padding: "20px" }}>
+        {/* 상단 네비게이션 버튼 */}
+        <nav style={{ marginBottom: "20px" }}>
+          <Link to="/" style={{ marginRight: "10px" }}>
+            <button>상품목록</button>
+          </Link>
+          <Link to="/admin">
+            <button>관리자 페이지</button>
+          </Link>
+        </nav>
+
+        {/* 라우팅 영역 */}
+        <Routes>
+          <Route path="/" element={<ProductGrid />} />
+          <Route path="/admin" element={<AdminPage />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
-
-export default App;
