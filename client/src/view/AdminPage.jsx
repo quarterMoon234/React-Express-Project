@@ -30,7 +30,7 @@ export default function AdminPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...form, price: Number(form.price) }),
     });
-    setForm({ name: "", description: "", price: "", image: "" });
+    setForm({ name: "", description: "", price: "", image: "" });444
     fetchProducts();
   };
 
