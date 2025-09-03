@@ -1,4 +1,4 @@
-import dotenv from "dotenv"; 
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -36,6 +36,16 @@ mongoose.connect("mongodb://localhost:27017/shop", {
 app.post("/api/register", async (req, res) => {
   const { username, password } = req.body;
 
+  // 아이디 유효성검사
+  if (!username || username.trim() === "") {
+    return res.status(400).json({ message: "아이디는 공백일 수 없습니다." });
+  }
+
+  // 비밀번호 유효성검사
+  if (!password || password.trim() === "") {
+    return res.status(400).json({ message: "비밀번호는 10자 이상으로 작성해주세요. (백엔드)" });
+  }
+
   // 이미 존재하는 아이디 체크
   const existingUser = await User.findOne({ username });
   if (existingUser) return res.status(400).json({ message: "이미 존재하는 아이디입니다." });
@@ -45,20 +55,31 @@ app.post("/api/register", async (req, res) => {
   const newUser = await User.create({ username, password: hashedPassword });
 
   req.session.userId = newUser._id; // 회원가입 후 바로 로그인 처리 <- TODO: 회원가입 후 다시 로그인하도록 수정
-  res.json({ message: "회원가입 완료" });
+  // 회원가입 성공 시
+  res.sendStatus(201); // 201 Created
 });
 
 // 로그인 
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
+
+  if (!username || username.trim() === "") {
+    return res.status(400).json({ message: "아이디를 입력해주세요." });
+  }
+
+  if (!password || password.trim() === "") {
+    return res.status(400).json({ message: "비밀번호를 입력해주세요." });
+  }
+
   const user = await User.findOne({ username });
-  if (!user) return res.status(401).json({ message: "사용자 없음" });
+  if (!user) return res.status(401).json({ message: "계정을 찾을 수 없습니다." });
 
   const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) return res.status(401).json({ message: "비밀번호 틀림" });
+  if (!isMatch) return res.status(401).json({ message: "비밀번호가 일치하지 않습니다." });
 
   req.session.userId = user._id;
-  res.json({ message: "로그인 성공" });
+  
+  res.sendStatus(200);
 });
 
 // 로그아웃 
