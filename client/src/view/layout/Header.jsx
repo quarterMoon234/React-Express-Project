@@ -1,10 +1,26 @@
 import React from "react";
 import { AppBar, Toolbar, Button, Box, Typography } from "@mui/material";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import CustomButton from "../components/CustomButton";
 
-export default function Header({ isLoggedIn }) {
+export default function Header({ isLoggedIn, onLogout }) {
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        try {
+            await fetch("http://localhost:3000/api/logout", {
+                method: "POST",
+                credentials: "include",
+            });
+        } catch (err) {
+            console.error("로그아웃 요청 실패:", err);
+        } finally {
+            onLogout();
+            navigate("/", { state: { flash: { type: "info", message: "로그아웃 되었습니다." } } })
+        }
+    };
+
     return (
         <AppBar position="fixed" sx={{ backgroundColor: "#a2d6f9" }}>
             <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
@@ -32,7 +48,7 @@ export default function Header({ isLoggedIn }) {
                 </Box>
 
                 {/* 오른쪽 영역 */}
-                <Box sx={{display: "flex", gap: 2}}>
+                <Box sx={{ display: "flex", gap: 2 }}>
                     <CustomButton
                         to="/admin"
                         variant="outlined"
@@ -86,7 +102,7 @@ export default function Header({ isLoggedIn }) {
                         </>
                     ) : (
                         <CustomButton
-                            to="/"
+                            onClick={handleLogout}
                             variant="outlined"
                             sx={{
                                 backgroundColor: "black", // 배경색

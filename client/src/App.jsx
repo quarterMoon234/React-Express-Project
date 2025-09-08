@@ -1,24 +1,42 @@
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import React, { useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 
-import Header from "./view/layout/Header";    
+import Header from "./view/layout/Header";
 import ProductGrid from "./view/ProductGrid";
 import AdminPage from "./view/AdminPage";
 import LoginPage from "./view/LoginPage";
 import RegisterPage from "./view/RegisterPage";
 
+
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(null);
+  const [session, setSession] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/session", {
+          credentials: "include",
+        });
+        setIsLoggedIn(res.status === 200); // 200이면 true, 204면 false
+      } catch {
+        setIsLoggedIn(false);
+      } finally {
+        setSession(false);
+      }
+    })();
+  }, []);
 
   return (
     <Router>
-        <Header isLoggedIn={false} />
-        <div style={{ paddingTop: "64px" }}>
+      <Header isLoggedIn={!!isLoggedIn} onLogout={() => setIsLoggedIn(false)} />
+      <div style={{ paddingTop: "64px" }}>
+        {session ? (
+          <div style={{ padding: 24 }}>세션 확인중...</div>
+        ) : (
           <Routes>
             <Route path="/" element={
-              <ProtectedRoute isLoggedIn={isLoggedIn}>
-                <ProductGrid />
-              </ProtectedRoute>
+              <ProductGrid />
             }
             />
             <Route
@@ -32,14 +50,15 @@ export default function App() {
             <Route path="/login" element={<LoginPage onLogin={setIsLoggedIn} />} />
             <Route path="/register" element={<RegisterPage onLogin={setIsLoggedIn} />} />
           </Routes>
-        </div>
+        )}
+      </div>
     </Router>
   );
 }
 
 // ProtectedRoute 컴포넌트
-import { Navigate } from "react-router-dom";
 function ProtectedRoute({ children, isLoggedIn }) {
   if (!isLoggedIn) return <Navigate to="/login" replace />;
   return children;
 }
+

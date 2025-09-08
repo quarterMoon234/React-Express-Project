@@ -20,11 +20,14 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 }, // 1시간
-    sameSite: "lax",
-    secure: false
+    cookie: {
+      httpOnly: true, 
+      secure: false,
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60,
+    }
   })
-);
+);  
 
 // DB연결
 mongoose.connect("mongodb://localhost:27017/shop", {
@@ -84,9 +87,7 @@ app.post("/api/login", async (req, res) => {
 
 // 로그아웃 
 app.post("/api/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.json({ message: "로그아웃 완료" });
-  });
+  req.session.destroy(() => res.sendStatus(204));
 });
 
 // 상품 조회
@@ -114,19 +115,14 @@ app.put("/api/products/:id", async (req, res) => {
 app.delete("/api/products/:id", async (req, res) => {
   const { id } = req.params;
   await Product.findByIdAndDelete(id);
-  res.json({ message: "Deleted successfully" });
+  res.json({ message: "Deleted successfully" });  
 });
 
-// 로그인 여부 체크 미들웨어
-function authMiddleware(req, res, next) {
-  if (!req.session.userId) return res.status(401).json({ message: "로그인 필요" });
-  next();
-}
-
-// 관리자 전용 API 예시
-app.get("/api/admin/products", authMiddleware, async (req, res) => {
-  const products = await Product.find({});
-  res.json(products);
+// 세션 확인 (로그인 유지 확인용)
+app.get("/api/session", (req, res) => {
+  if (!req.session.userId) return res.sendStatus(204); // 로그인 아님
+  return res.sendStatus(200);                           // 로그인 상태
 });
+
 
 app.listen(3000, () => console.log("Server running on port 3001"));
