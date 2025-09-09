@@ -45,6 +45,22 @@ export default function Header({ isLoggedIn, onLogout }) {
                     >
                         상품 목록
                     </CustomButton>
+                    <CustomButton
+                        to="/cart"
+                        variant="outlined"
+                        sx={{
+                            backgroundColor: "black", // 배경색
+                            color: "white",           // 텍스트 색상
+                            borderColor: "white",   // ✅ 테두리 색상 변경
+                            "&:hover": {
+                                backgroundColor: "#222",   // hover 시 배경
+                                borderColor: "white",        // hover 시 테두리
+                                color: "white",           // hover 시 텍스트
+                            },
+                        }}
+                    >
+                        장바구니
+                    </CustomButton>
                 </Box>
 
                 {/* 오른쪽 영역 */}

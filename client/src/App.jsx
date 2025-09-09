@@ -6,6 +6,7 @@ import ProductGrid from "./view/ProductGrid";
 import AdminPage from "./view/AdminPage";
 import LoginPage from "./view/LoginPage";
 import RegisterPage from "./view/RegisterPage";
+import CartPage from "./view/CartPage";
 
 
 export default function App() {
@@ -49,6 +50,7 @@ export default function App() {
             />
             <Route path="/login" element={<LoginPage onLogin={setIsLoggedIn} />} />
             <Route path="/register" element={<RegisterPage onLogin={setIsLoggedIn} />} />
+            <Route path="/cart" element={<CartPage />} />
           </Routes>
         )}
       </div>

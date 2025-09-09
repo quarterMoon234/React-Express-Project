@@ -4,5 +4,9 @@
   },
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\""
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "uuid": "^12.0.0"
   }
 }
