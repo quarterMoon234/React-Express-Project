@@ -8,11 +8,13 @@ import session from "express-session"
 import bcrypt from "bcryptjs"
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import {v4 as uuid} from "uuid"; 
+import { v4 as uuid } from "uuid";
 
 import User from "./models/User.js";
 import Product from "./models/Product.js";
 import Cart from "./models/Cart.js"
+
+import { touchGuestExpiry, promoteToUserCart, getOrCreateCartByCartId } from "./utils/utils.js";
 
 const app = express();
 app.use(cors({ origin: "http://localhost:5173", credentials: true })); // React 연결
@@ -28,7 +30,7 @@ function ensureCartId(req, res, next) {
       sameSite: "lax",
       secure: false,
       maxAge: 1000 * 60 * 60 * 24 * 30, // 30일
-      path: "/" 
+      path: "/"
     });
     req.cookies.cartId = newId;
   }
@@ -43,21 +45,13 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      httpOnly: true, 
+      httpOnly: true,
       secure: false,
       sameSite: "lax",
       maxAge: 1000 * 60 * 60,
     }
   })
-);  
-
-async function getOrCreateCartByCartId(cartId) {
-  let cart = await Cart.findOne({ cartId });
-  if (cart) {
-    return cart;
-  }
-  return await Cart.create({ cartId });
-}
+);
 
 // DB연결
 mongoose.connect("mongodb://localhost:27017/shop", {
@@ -111,16 +105,17 @@ app.post("/api/login", async (req, res) => {
   if (!isMatch) return res.status(401).json({ message: "비밀번호가 일치하지 않습니다." });
 
   req.session.userId = user._id;
-  
+
   const cartId = req.cookies.cartId;
   if (cartId) {
     const cart = await Cart.findOne({ cartId });
     if (cart) {
       cart.userId = user._id;
+      cart.expiresAt = null;
       await cart.save();
     }
   }
-
+  
   res.sendStatus(200);
 });
 
@@ -154,7 +149,7 @@ app.put("/api/products/:id", async (req, res) => {
 app.delete("/api/products/:id", async (req, res) => {
   const { id } = req.params;
   await Product.findByIdAndDelete(id);
-  res.json({ message: "Deleted successfully" });  
+  res.json({ message: "Deleted successfully" });
 });
 
 // 세션 확인 (로그인 유지 확인용)
@@ -167,19 +162,30 @@ app.get("/api/cart", async (req, res) => {
   try {
     let cart;
     if (req.session.userId) {
-      // 우선 userId로 카트 조회
+      // 로그인 유저 카트 조회
       cart = await Cart.findOne({ userId: req.session.userId }).populate("items.productId");
     }
     if (!cart && req.cookies.cartId) {
-      // 로그인 전의 cartId로 조회
+      // 비로그인 유저 카트 조회
       cart = await Cart.findOne({ cartId: req.cookies.cartId }).populate("items.productId");
     }
     if (!cart) {
-      // 아예 없으면 새로 생성
-      cart = await Cart.create({ cartId: req.cookies.cartId, userId: req.session.userId, items: [] });
+      // 로그인 & 비로그인 상관없이 카트 자체가 없으면 새로 생성
+      cart = await Cart.create({
+        cartId: req.cookies.cartId,
+        userId: req.session.userId || null,
+        items: [],
+        updatedAt: new Date(),
+        expiresAt: req.session.userId ? null : new Date(Date.now() + 1000 * 60)
+      })
+    } else {
+      // touchGuestExpiry 함수 => 비로그인 유저라면 장바구니 수명 연장 & 로그인 유저라면 아무것도 수행하지 않고 그대로 통과
+      touchGuestExpiry(cart);
+      await cart.save();
+      cart = await Cart.findById(cart._id).populate("items.productId");
     }
 
-    res.json(cart);
+    res.status(200).json(cart);
   } catch (e) {
     console.error("GET /api/cart error", e);
     res.status(500).json({ message: "카트 조회 실패" });
@@ -192,9 +198,38 @@ app.post("/api/cart/items", async (req, res) => {
     const { productId, qty = 1 } = req.body;
     if (!productId) return res.status(400).json({ message: "productId 필요" });
 
-    const cart = await getOrCreateCartByCartId(req.cookies.cartId);
+    let cart;
 
-    // 이미 담겨있으면 수량 증가, 없으면 추가
+    // 로그인한 사용자가 장바구니에 담기를 사용했을 때
+    if (req.session.userId) {
+      // 기존 장바구니가 있을 때
+      cart = await Cart.findOne({ userId: req.session.userId });
+      if (!cart) {
+        // 장바구니가 없을 때
+        cart = await Cart.create({
+          userId: req.session.userId,
+          cartId: req.cookies.cartId,
+          items: [],
+          expiresAt: null // 로그인 유저이므로 만기 시간 없음
+        })
+      }
+    } else { // 비로그인 사용자가 장바구니에 담기를 사용했을 때
+
+      // 기존 장바구니가 있을 때
+      cart = await Cart.findOne({ cartId: req.cookies.cartId });
+
+      if (!cart) {
+        //장바구니가 없을 때
+        cart = await Cart.create({
+          cartId: req.cookies.cartId,
+          items: [],
+          expiresAt: new Date(Date.now() + 1000 * 60)
+        })
+
+      }
+    }
+
+    // 상품이 이미 장바구니에 담겨있으면 수량 증가, 없으면 추가
     const idx = cart.items.findIndex(
       (i) => i.productId.toString() === productId
     );
@@ -202,6 +237,11 @@ app.post("/api/cart/items", async (req, res) => {
       cart.items[idx].qty += Number(qty) || 1;
     } else {
       cart.items.push({ productId, qty: Number(qty) || 1 });
+    }
+
+    // 비로그인일 경우만 만료 연장
+    if (!req.session.userId) {
+      touchGuestExpiry(cart);
     }
 
     await cart.save();

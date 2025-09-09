@@ -9,15 +9,16 @@ const CartSchema = new mongoose.Schema({
     cartId: { type: String, index: true, unique: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null},
     items: { type: [CartItemSchema], default: [] },
-    updatedAt: { type: Date, default: Date.now }
+    updatedAt: { type: Date, default: Date.now },
+    expiresAt: { type: Date, default: null}
 });
 
 CartSchema.pre("save", function(next) {
     this.updatedAt = new Date();
-    next();
+    next(); 
 })
 
-CartSchema.index({ updatedAt: 1}, { expireAfterSeconds: 60 });
+CartSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const Cart = mongoose.model("Cart", CartSchema);
 
