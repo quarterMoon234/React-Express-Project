@@ -16,7 +16,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/session", {
+        const res = await fetch("http://localhost:3000/api/auth/session", {
           credentials: "include",
         });
         setIsLoggedIn(res.status === 200); // 200이면 true, 204면 false

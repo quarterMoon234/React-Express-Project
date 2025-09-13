@@ -26,7 +26,7 @@ export default function RegisterPage({ onLogin }) {
       setErrMsg("비밀번호는 10자 이상으로 작성해주세요.")
       return;
     }
-    const res = await fetch("http://localhost:3000/api/register", {
+    const res = await fetch("http://localhost:3000/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
