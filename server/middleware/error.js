@@ -1,8 +1,17 @@
-export function notFound(req, res, next) {
-  res.status(404).json({ message: "Not Found" });
+export function notFound(req, res, _next) {
+  res.status(404).json({ ok: false, message: "Not Found" });
 }
 
-export function errorHandler(err, req, res, next) {
-  console.error(err);
-  res.status(err.status || 500).json({ message: err.message || "Internal Server Error" });
+export function errorHandler(err, req, res, _next) {
+  const status = err.status || 500;
+  const body = {
+    ok: false,
+    message: err.message || "Internal Server Error"
+  }
+  if (process.env.NODE_ENV !== "production") {
+    body.stack = err.stack;
+  }
+  console.error(`[${new Date().toISOString()}]`, err);
+  res.status(status).json(body);  
 }
+
