@@ -66,3 +66,14 @@ export async function addItem({ userId, cartId, productId, qty }) {
   }
   await cart.save();
 }
+
+export async function promoteGuestCartToUser({ cartId, userId }) {
+  if (!cartId) return { promoted: false };
+  const cart = await Cart.findOne({ cartId });
+  if (!cart) return { promoted: false };
+
+  cart.userId = userId;
+  cart.expiresAt = null;
+  await cart.save();
+  return { prometed: true}; // 객체를 리턴하는 이유는 controller에게 단순 결과를 알려주기 위함임. 리턴 안해도 상관 X
+}

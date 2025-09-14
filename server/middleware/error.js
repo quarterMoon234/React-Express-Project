@@ -6,7 +6,8 @@ export function errorHandler(err, req, res, _next) {
   const status = err.status || 500;
   const body = {
     ok: false,
-    message: err.message || "Internal Server Error"
+    message: err.message || "Internal Server Error",
+    details: err.details || undefined
   }
   if (process.env.NODE_ENV !== "production") {
     body.stack = err.stack;

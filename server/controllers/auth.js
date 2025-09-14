@@ -1,57 +1,27 @@
-import bcrypt from "bcryptjs";
-import User from "../models/User.js";
-import Cart from "../models/Cart.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import * as authService from "../services/auth.js";
+import * as cartService from "../services/cart.js";
 
-export async function register(req, res, next) {
-    try {
-        const { username, password } = req.body;
+export const register = asyncHandler(async (req, res) => {
+    const { username, password } = req.validated?.body || req.body;
 
-        if (!username?.trim()) return res.status(400).json({ message: "아이디는 공백일 수 없습니다." });
-        if (!password?.trim()) return res.status(400).json({ message: "비밀번호는 10자 이상으로 작성해주세요. (백엔드)" });
+    const user = await authService.registerUser({username, password}) // 회원가입 검증 비즈니스 로직
+    req.session.userId = user._id;  
 
-        const existing = await User.findOne({ username });
-        if (existing) return res.status(400).json({ message: "이미 존재하는 아이디입니다." });
+    return res.sendStatus(201);
+});
 
-        const hashed = await bcrypt.hash(password, 10);
-        const user = await User.create({ username, password: hashed });
+export const login = asyncHandler(async (req, res) => {
+    const { username, password } = req.body;
 
-        req.session.userId = user._id;
-        return res.sendStatus(201);
-    } catch (e) {
-        next(e);
-    }
-}
+    const user = await authService.loginUser({ username, password }); // 로그인 검증 비즈니스 로직
+    req.session.userId = user._id;
 
-export async function login(req, res, next) {
-    try {
-        const { username, password } = req.body;
-        
-        if (!username?.trim()) return res.status(400).json({ message: "아이디를 입력해주세요." });
-        if (!password?.trim()) return res.status(400).json({ message: "비밀번호를 입력해주세요." });
+    const { cartId } = req.cookies;
+    await cartService.promoteGuestCartToUser({ cartId, userId: user._id }); // 게스트 장바구니 회원 장바구니로 승격 비즈니스 로직
 
-        const user = await User.findOne({ username });
-        if (!user) return res.status(401).json({ message: "계정을 찾을 수 없습니다."});
-
-        const ok = await bcrypt.compare(password, user.password);
-        if (!ok) return res.status(401).json({ message: "비밀번호가 일치하지 않습니다."});
-
-        req.session.userId = user._id;
-
-        const { cartId } = req.cookies;
-        if (cartId) {
-            const cart = await Cart.findOne({ cartId });
-            if (cart) {
-                cart.userId = user._id;
-                cart.expiresAt = null;
-                await cart.save();
-            }
-        }
-
-        return res.sendStatus(200);
-    } catch (e) {
-        next(e);
-    }
-}
+    return res.sendStatus(200);
+})
 
 export function logout(req, res, _next) {
     req.session.destroy(() => res.sendStatus(204));
