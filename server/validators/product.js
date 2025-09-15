@@ -6,6 +6,7 @@ export const createProductSchema = Joi.object({
     description: Joi.string().allow("").default(""),
     price: Joi.number().integer().min(0).required(),
     image: Joi.string().uri().allow(""), // URL 또는 빈 값 허용
+    categories: Joi.array().items(Joi.string().trim()).default([])
   }),
   params: Joi.object({}),
   query: Joi.object({}),
@@ -17,6 +18,7 @@ export const updateProductSchema = Joi.object({
     description: Joi.string().allow(""),
     price: Joi.number().integer().min(0),
     image: Joi.string().uri().allow(""),
+    categories: Joi.array().items(Joi.string().trim())
   }).min(1), // 최소 1개 필드라도 있어야 함
   params: Joi.object({
     id: Joi.string().hex().length(24).required(), // Mongo ObjectId 형식

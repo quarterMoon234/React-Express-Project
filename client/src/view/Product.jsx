@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   Card, CardMedia, CardContent, CardActions,
-  Typography, Button, Snackbar, Alert
+  Typography, Button, Snackbar, Alert, Chip, Stack
 } from "@mui/material";
 
 const API_BASE = "http://localhost:3000";
@@ -9,6 +9,8 @@ const API_BASE = "http://localhost:3000";
 export default function Product({ product }) {
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState(null); // { type: "success"|"error", msg: string }
+
+  const categories = Array.isArray(product.categories) ? product.categories : [];
 
   const handleAddToCart = async () => {
     try {
@@ -45,6 +47,15 @@ export default function Product({ product }) {
           <Typography gutterBottom variant="h6">
             {product.name}
           </Typography>
+          {/* ✅ 카테고리 칩들 */}
+          {!!categories.length && (
+            <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap", rowGap: 1 }}>
+              {categories.map((c) => (
+                <Chip key={c} label={c} size="small" variant="outlined" />
+              ))}
+            </Stack>
+          )}
+
           <Typography variant="body2" color="text.secondary">
             {product.description}
           </Typography>
@@ -53,19 +64,12 @@ export default function Product({ product }) {
           </Typography>
         </CardContent>
         <CardActions>
-          <Button
-            size="small"
-            variant="contained"
-            onClick={handleAddToCart}
-            disabled={adding}
-          >
+          <Button size="small" variant="contained" onClick={handleAddToCart} disabled={adding}>
             {adding ? "담는 중..." : "장바구니"}
           </Button>
-          <Button size="small" variant="outlined" color="secondary">
-            상세보기
-          </Button>
+          <Button size="small" variant="outlined" color="secondary">상세보기</Button>
         </CardActions>
-      </Card>
+      </Card >
 
       <Snackbar
         open={!!toast}
