@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import DeleteIcon from "@mui/icons-material/Delete";
 import {
   Box,
   Card,
@@ -10,6 +11,8 @@ import {
   Stack,
   Alert,
   Button,
+  IconButton,
+  Tooltip
 } from "@mui/material";
 
 // 금액 표시 유틸
@@ -18,22 +21,60 @@ function currency(n) {
   return n.toLocaleString("ko-KR") + "원";
 }
 
-/**
- * 조회 전용 장바구니 페이지
- * 서버는 GET /api/cart 를 제공한다고 가정.
- * - populate 되어 p = item.productId({ _id, name, price, image })가 오는 경우를 우선 가정
- * - populate가 없다면 p가 ObjectId일 수 있으므로 방어코드 포함
- */
 export default function CartPage() {
-  const [cart, setCart] = useState(null); // { items: [{ productId: {...}, qty, priceAtAdd? }], ... }
+  const [cart, setCart] = useState(null); // { items: [{ productId: {...}, qty }], ... }
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [updatingId, setUpdatingId] = useState(null); // 현재 수정 중인 상품 id (버튼 비활성화 용)
+  const [removingId, setRemovingId] = useState(null);
 
-  const fetchCart = async () => {
+  async function removeItem(productId) {
+    try {
+      setRemovingId(productId);
+      const res = await fetch(`http://localhost:3000/api/cart/items/${productId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.message || "삭제 실패");
+      }
+      const data = await res.json();
+      setCart(data);
+    } catch (e) {
+      setErr(e.message || "에러가 발생했습니다.");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  async function updateQty(productId, nextQty) {
+    try {
+      setUpdatingId(productId);
+      const res = await fetch("http://localhost:3000/api/cart/items", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ productId, qty: nextQty }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.message || "수량 변경 실패");
+      }
+      const data = await res.json();
+      setCart(data); // 최신 카트로 갱신
+    } catch (e) {
+      setErr(e.message || "에러가 발생했습니다.");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  const fetchCart = async () => { // TODO => 위 함수는 함수 표기법인데 얘는 화살표 함수라서 일관성이 없음. 추후 통일 필요
     setErr("");
     setLoading(true);
     try {
-      const res = await fetch( "http://localhost:3000/api/cart" , {
+      const res = await fetch("http://localhost:3000/api/cart", {
         credentials: "include", // cartId 쿠키 포함
       });
       if (!res.ok) throw new Error("장바구니를 불러오지 못했습니다.");
@@ -54,10 +95,7 @@ export default function CartPage() {
     if (!cart?.items) return 0;
     return cart.items.reduce((sum, it) => {
       const p = it.productId;
-      const price =
-        typeof it.priceAtAdd === "number"
-          ? it.priceAtAdd
-          : (p && typeof p.price === "number" ? p.price : 0);
+      const price = p && typeof p.price === "number" ? p.price : 0;
       return sum + price * (it.qty || 0);
     }, 0);
   }, [cart]);
@@ -92,38 +130,58 @@ export default function CartPage() {
       ) : (
         <Stack spacing={2}>
           {cart.items.map((it, idx) => {
-            const p = it.productId; // populate되면 객체, 아니면 ObjectId
-            const name = p && p.name ? p.name : "상품명";
-            const image =
-              p && p.image
-                ? p.image
-                : "https://via.placeholder.com/120x120?text=No+Image";
-            const price =
-              typeof it.priceAtAdd === "number"
-                ? it.priceAtAdd
-                : p && typeof p.price === "number"
-                ? p.price
-                : 0;
+            const p = it.productId;
+            const productId = p?._id || it.productId; // populate/미populate 상황 모두 대응
+            const name = p?.name ?? "상품명";
+            const image = p?.image ?? "https://via.placeholder.com/120x120?text=No+Image";
+            const price = typeof it.priceAtAdd === "number" ? it.priceAtAdd : (p?.price ?? 0);
 
             return (
-              <Card key={p?._id || idx} sx={{ overflow: "hidden" }}>
+              <Card key={productId || idx} sx={{ overflow: "hidden" }}>
                 <Box sx={{ display: "flex", alignItems: "stretch" }}>
-                  <CardMedia
-                    component="img"
-                    image={image}
-                    alt={name}
-                    sx={{ width: 120, height: 120, objectFit: "cover" }}
-                  />
+                  <CardMedia component="img" image={image} alt={name}
+                    sx={{ width: 120, height: 120, objectFit: "cover" }} />
                   <CardContent sx={{ flex: 1 }}>
-                    <Typography variant="subtitle1" fontWeight={700}>
-                      {name}
-                    </Typography>
+                    <Typography variant="subtitle1" fontWeight={700}>{name}</Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                       단가: {currency(price)}
                     </Typography>
-                    <Typography sx={{ mt: 1.5 }} fontWeight={700}>
-                      수량: {it.qty} &nbsp;|&nbsp; 합계: {currency(price * (it.qty || 0))}
-                    </Typography>
+
+                    {/* 수량 조절 UI */}
+                    <Box sx={{ display: "flex", alignItems: "center", mt: 1.5, gap: 1 }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        disabled={updatingId === productId}
+                        onClick={() => updateQty(productId, it.qty - 1)} // 0이 되면 서버에서 제거
+                      >−</Button>
+
+                      <Typography fontWeight={700}>{it.qty}</Typography>
+
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        disabled={updatingId === productId}
+                        onClick={() => updateQty(productId, it.qty + 1)}
+                      >+</Button>
+
+                      <Box sx={{ ml: "auto" }} />
+                      <Typography fontWeight={700}>
+                        합계: {currency(price * (it.qty || 0))}
+                      </Typography>
+                      {/* ✅ 삭제 버튼 */}  
+                      <Tooltip title="삭제">
+                        <span>
+                          <IconButton
+                            aria-label="삭제"
+                            onClick={() => removeItem(productId)}
+                            disabled={removingId === productId}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </Box>
                   </CardContent>
                 </Box>
               </Card>
