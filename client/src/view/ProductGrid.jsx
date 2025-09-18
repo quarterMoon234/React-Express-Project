@@ -1,24 +1,56 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
-import Grid from "@mui/material/Grid";
-import { Snackbar, Alert } from "@mui/material";
+import {
+  Grid,
+  Stack,
+  Pagination,
+  Snackbar,
+  Alert,
+  TextField,
+  Box,
+  Button,
+  AppBar,
+  Toolbar,
+  Container
+} from "@mui/material";
 
 import Product from "./Product";
 
+const API_BASE = "http://localhost:3000";
+
 export default function ProductGrid() {
+  const [searchParams] = useSearchParams();
+  const [products, setProducts] = useState([]);
+  const [page, setPage] = useState(Number(searchParams.get("page") || 1));
+  const [limit] = useState(20);
+  const [pageCount, setPageCount] = useState(1);
+  const [flash, setFlash] = useState(null);
+
+  const q = searchParams.get("q") || ""; // <- 전역 검색바가 넣어준 q를 사용
+
   const location = useLocation();
   const navigate = useNavigate();
-
-  const [flash, setFlash] = useState(null);
-  const [products, setProducts] = useState([]);
-
+  
   useEffect(() => {
-    fetch("http://localhost:3000/api/products")
-      .then(res => res.json())
-      .then(data => setProducts(data))
-      .catch(err => console.error(err));
-  }, []);
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    params.set("page", String(page));
+    params.set("limit", String(limit));
+
+    fetch(`${API_BASE}/api/products?${params.toString()}`)
+      .then(r => r.json())
+      .then(data => {
+        // 컨트롤러가 {items,total,page,pageCount,...} 형태면 아래처럼
+        setProducts(data.items || []);
+        setPageCount(data.pageCount || 1);
+      })
+      .catch(err => {
+        console.error("상품 로드 실패:", err);
+        setProducts([]);
+        setPage(1);
+      });
+  }, [q, page, limit]);
 
   useEffect(() => {
     // 라우터 state에 flash가 있으면 꺼내서 로컬 상태로 옮기고, history state는 깨끗이 정리
@@ -33,26 +65,20 @@ export default function ProductGrid() {
     <>
       <Grid container spacing={3} justifyContent="center" sx={{ p: 3 }}>
         {products.map((p) => (
-          <Grid item key={p._id} xs={12} sm={6} md={4} lg={3}>
+          <Grid key={p._id} item xs={12} sm={6} md={4} lg={3}>
             <Product product={p} />
           </Grid>
         ))}
       </Grid>
-      <Snackbar
-        open={Boolean(flash)}
-        autoHideDuration={3000}
-        onClose={() => setFlash(null)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setFlash(null)}
-          severity={flash?.type || "info"}
-          variant="filled"
-          sx={{ width: "100%" }}  
-        >
-          {flash?.message}
-        </Alert>
-      </Snackbar>
+
+      <Stack alignItems="center" sx={{ mt: 3 }}>
+        <Pagination
+          count={pageCount}
+          page={page}
+          onChange={(_e, v) => setPage(v)}
+          color="primary"
+        />
+      </Stack>
     </>
   );
 }
