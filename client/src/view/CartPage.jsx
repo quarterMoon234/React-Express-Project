@@ -70,7 +70,7 @@ export default function CartPage() {
     }
   }
 
-  const fetchCart = async () => { // TODO => 위 함수는 함수 표기법인데 얘는 화살표 함수라서 일관성이 없음. 추후 통일 필요
+  async function fetchCart() {
     setErr("");
     setLoading(true);
     try {
@@ -85,7 +85,7 @@ export default function CartPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   useEffect(() => {
     fetchCart();
@@ -169,7 +169,7 @@ export default function CartPage() {
                       <Typography fontWeight={700}>
                         합계: {currency(price * (it.qty || 0))}
                       </Typography>
-                      {/* ✅ 삭제 버튼 */}  
+                      {/* ✅ 삭제 버튼 */}
                       <Tooltip title="삭제">
                         <span>
                           <IconButton
