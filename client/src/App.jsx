@@ -7,8 +7,8 @@ import AdminPage from "./view/AdminPage";
 import LoginPage from "./view/LoginPage";
 import RegisterPage from "./view/RegisterPage";
 import CartPage from "./view/CartPage";
-import SearchBarGlobal from "./view/components/SearchBarGlobal";
 import ProductPage from "./view/ProductPage";
+import ProductDetailPage from "./view/ProductDetailPage";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
@@ -42,7 +42,8 @@ export default function App() {
             <Route path="/login" element={<LoginPage onLogin={setIsLoggedIn} />} />
             <Route path="/register" element={<RegisterPage onLogin={setIsLoggedIn} />} />
             <Route path="/cart" element={<CartPage />} />
-            <Route
+            <Route path="/products/:id" element={<ProductDetailPage />} />
+            <Route  
               path="/admin"
               element={
                 <ProtectedRoute isLoggedIn={isLoggedIn}>

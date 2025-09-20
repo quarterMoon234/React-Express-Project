@@ -1,7 +1,16 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  Card, CardMedia, CardContent, CardActions,
-  Typography, Button, Snackbar, Alert, Chip, Stack
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions,
+  Typography,
+  Button,
+  Snackbar,
+  Alert,
+  Chip,
+  Stack
 } from "@mui/material";
 
 const API_BASE = "http://localhost:3000";
@@ -9,6 +18,8 @@ const API_BASE = "http://localhost:3000";
 export default function Product({ product }) {
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState(null); // { type: "success"|"error", msg: string }
+
+  const navigate = useNavigate();
 
   const categories = Array.isArray(product.categories) ? product.categories : [];
 
@@ -44,7 +55,12 @@ export default function Product({ product }) {
           alt={product.name}
         />
         <CardContent>
-          <Typography gutterBottom variant="h6">
+          <Typography
+            gutterBottom
+            variant="h6"
+            sx={{ cursor: "pointer" }}
+            onClick={() => navigate(`/products/${product._id}`)}
+          >
             {product.name}
           </Typography>
           {/* ✅ 카테고리 칩들 */}

@@ -56,6 +56,14 @@ export const create = asyncHandler(async (req, res) => {
     res.status(201).json(product);
 })
 
+export const find = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const product = await Product.findById(id);
+    res.status(200).json(product);
+}
+
+) 
+
 export const update = asyncHandler(async (req, res) => {
     const updated = await Product.findByIdAndUpdate(
         req.params.id,
