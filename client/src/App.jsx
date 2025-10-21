@@ -9,6 +9,9 @@ import RegisterPage from "./view/RegisterPage";
 import CartPage from "./view/CartPage";
 import ProductPage from "./view/ProductPage";
 import ProductDetailPage from "./view/ProductDetailPage";
+import CheckoutPage from "./view/CheckoutPage";
+import PaySuccess from "./view/PaySuccess";
+import PayFail from "./view/PayFail";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
@@ -43,7 +46,11 @@ export default function App() {
             <Route path="/register" element={<RegisterPage onLogin={setIsLoggedIn} />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/products/:id" element={<ProductDetailPage />} />
-            <Route  
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/pay/success" element={<PaySuccess />} />
+            <Route path="/pay/fail" element={<PayFail />} />
+            <Route path="/order/complete" element={<div>주문 완료!</div>} />
+            <Route
               path="/admin"
               element={
                 <ProtectedRoute isLoggedIn={isLoggedIn}>

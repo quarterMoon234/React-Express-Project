@@ -9,5 +9,6 @@ router.post("/register", validate(registerSchema), auth.register);
 router.post("/login", validate(loginSchema), auth.login);
 router.post("/logout", auth.logout);
 router.get("/session", auth.session);
+router.get("/me", auth.me);
 
 export default router;  
