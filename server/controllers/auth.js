@@ -23,15 +23,9 @@ export const login = asyncHandler(async (req, res) => {
     return res.sendStatus(200);
 })
 
-export function logout(req, res, _next) {
+export const logout = asyncHandler(async (req, res, _next) => {
     req.session.destroy(() => res.sendStatus(204));
-}
-
-// 세션 확인 (로그인 유지 확인용)
-export function session(req, res, _next) {
-    if (!req.session.userId) return res.sendStatus(204); // 로그인 아님
-    return res.sendStatus(200); // 로그인 상태
-}
+})
 
 export const me = asyncHandler(async (req, res) => {
     if (!req.session.userId) return res.sendStatus(204);
